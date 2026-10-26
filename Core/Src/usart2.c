@@ -26,7 +26,7 @@ void USART2_Init(void)
 {
   s_tx_free = xSemaphoreCreateBinary();
   configASSERT(s_tx_free != NULL);
-  xSemaphoreGive(s_tx_free); /* buffer starts free */
+  (void) xSemaphoreGive(s_tx_free); /* buffer starts free */
 }
 
 USART2_Status_t USART2_Write(const uint8_t *buf, size_t len)
@@ -34,21 +34,29 @@ USART2_Status_t USART2_Write(const uint8_t *buf, size_t len)
   configASSERT(s_tx_free != NULL); /* catch "called before Init" */
 
   if(buf == NULL)
+  {
     return USART2_ERR_INVALID_ARG;
+  }
   if(len == 0U)
+  {
     return USART2_OK; /* no-op */
+  }
   if(len > USART2_TX_BUF_SIZE)
+  {
     len = USART2_TX_BUF_SIZE; /* clamp oversized */
+  }
 
   /* Blocks only if the previous message is still in flight. */
   if(xSemaphoreTake(s_tx_free, pdMS_TO_TICKS(USART2_TX_TIMEOUT_MS)) != pdTRUE)
+  {
     return USART2_ERR_TIMEOUT;
+  }
 
   memcpy(s_tx_buf, buf, len); /* copy so caller's buf can be reused */
 
   if(HAL_UART_Transmit_DMA(&huart2, s_tx_buf, (uint16_t) len) != HAL_OK)
   {
-    xSemaphoreGive(s_tx_free); /* release on failure */
+    (void) xSemaphoreGive(s_tx_free); /* release on failure */
     return USART2_ERR_HAL;
   }
   return USART2_OK; /* DMA in flight; TC callback releases */
@@ -57,14 +65,18 @@ USART2_Status_t USART2_Write(const uint8_t *buf, size_t len)
 USART2_Status_t USART2_WriteString(const char *str)
 {
   if(str == NULL)
+  {
     return USART2_ERR_INVALID_ARG;
+  }
   return USART2_Write((const uint8_t*) str, strlen(str));
 }
 
 USART2_Status_t USART2_Printf(const char *fmt, ...)
 {
   if(fmt == NULL)
+  {
     return USART2_ERR_INVALID_ARG;
+  }
 
   char buf[USART2_TX_BUF_SIZE];
   va_list args;
@@ -73,9 +85,13 @@ USART2_Status_t USART2_Printf(const char *fmt, ...)
   va_end(args);
 
   if(n < 0)
+  {
     return USART2_ERR_INVALID_ARG; /* format error */
+  }
   if(n == 0)
+  {
     return USART2_OK; /* nothing to print */
+  }
 
   /* vsnprintf returns wanted length, which can exceed buf on truncation. */
   size_t len = (n < (int) sizeof(buf)) ? (size_t) n : sizeof(buf) - 1U;
@@ -88,8 +104,10 @@ USART2_Status_t USART2_Flush(uint32_t timeout_ms)
 
   /* Take + give proves the buffer is free without consuming the token. */
   if(xSemaphoreTake(s_tx_free, pdMS_TO_TICKS(timeout_ms)) != pdTRUE)
+  {
     return USART2_ERR_TIMEOUT;
-  xSemaphoreGive(s_tx_free);
+  }
+  (void) xSemaphoreGive(s_tx_free);
   return USART2_OK;
 }
 
@@ -100,7 +118,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
   if(huart->Instance == USART2)
   {
     BaseType_t hpw = pdFALSE;
-    xSemaphoreGiveFromISR(s_tx_free, &hpw); /* release buffer */
+    (void) xSemaphoreGiveFromISR(s_tx_free, &hpw); /* release buffer */
     portYIELD_FROM_ISR(hpw); /* wake blocked writer now */
   }
 }
@@ -111,7 +129,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
   {
     /* DMA aborted — release to avoid permanent stall on next Write. */
     BaseType_t hpw = pdFALSE;
-    xSemaphoreGiveFromISR(s_tx_free, &hpw);
+    (void) xSemaphoreGiveFromISR(s_tx_free, &hpw);
     portYIELD_FROM_ISR(hpw);
   }
 }
