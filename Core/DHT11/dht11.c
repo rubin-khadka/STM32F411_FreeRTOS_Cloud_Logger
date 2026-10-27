@@ -22,27 +22,18 @@
 #define DHT_TIMEOUT_BIT_US       200U
 #define DHT_SAMPLE_DELAY_US      40U
 
-static inline uint32_t us_to_ticks(uint32_t us)
-{
-  return us * (SystemCoreClock / 1000000U);
-}
-
 void DHT11_Init(void)
 {
-  DWT_Init();
-
   HAL_GPIO_WritePin(DHT_PORT, DHT_PIN, GPIO_PIN_SET); /* idle HIGH via pull-up */
 }
 
-/* Wait for pin to reach `level` */
 static DHT11_Status_t dht_wait_level(GPIO_PinState level, uint32_t timeout_us)
 {
-  uint32_t start = DWT->CYCCNT;
-  uint32_t ticks = us_to_ticks(timeout_us);
+  uint32_t start = DWT_GetCycles();
 
   while(HAL_GPIO_ReadPin(DHT_PORT, DHT_PIN) != level)
   {
-    if((DWT->CYCCNT - start) > ticks)
+    if(DWT_Elapsed_us(start, timeout_us))
     {
       return DHT11_ERR_TIMEOUT;
     }
