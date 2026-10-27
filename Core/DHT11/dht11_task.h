@@ -8,6 +8,6 @@
 #ifndef DHT11_DHT11_TASK_H_
 #define DHT11_DHT11_TASK_H_
 
-void vDhtTask(void *pv);
+void vDht11Task(void *pv);
 
 #endif /* DHT11_DHT11_TASK_H_ */

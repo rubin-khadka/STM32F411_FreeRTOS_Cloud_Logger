@@ -13,28 +13,38 @@
 
 #define DHT_PERIOD_MS  1000U
 
-void vDhtTask(void *pv)
+void vDht11Task(void *pv)
 {
   (void) pv;
 
   DHT11_Init();
 
-  TickType_t last = xTaskGetTickCount();
-  DHT11_Data_t dht11_data;
+  TickType_t last_wake = xTaskGetTickCount();
+  DHT11_Data_t sensor_reading;
+  DHT11_Status_t read_status;
 
   for(;;)
   {
-    DHT11_Status_t dht11_status = DHT11_ReadFrame(&dht11_data);
+    read_status = DHT11_ReadFrame(&sensor_reading);
 
-    if(dht11_status == DHT11_OK)
+    if(read_status == DHT11_OK)
     {
-      (void) USART2_Printf("DHT: T=%.1f C  H=%.1f %%\r\n", (double) dht11_data.temp_c, (double) dht11_data.hum_pct);
+      /* Scale to tenths, format as "23.5" without %f */
+      int temp_tenths = (int) (sensor_reading.temp_c * 10.0f + 0.5f);
+      int hum_tenths = (int) (sensor_reading.hum_pct * 10.0f + 0.5f);
+
+      (void) USART2_Printf(
+          "DHT: T=%d.%d C  H=%d.%d %%\r\n",
+          temp_tenths / 10,
+          temp_tenths % 10,
+          hum_tenths / 10,
+          hum_tenths % 10);
     }
     else
     {
-      (void) USART2_Printf("DHT: read failed (status=%d)\r\n", (int) dht11_status);
+      (void) USART2_Printf("DHT: read failed (status=%d)\r\n", (int) read_status);
     }
 
-    vTaskDelayUntil(&last, pdMS_TO_TICKS(DHT_PERIOD_MS));
+    vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(DHT_PERIOD_MS));
   }
 }
