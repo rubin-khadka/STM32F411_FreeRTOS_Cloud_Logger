@@ -26,6 +26,7 @@
 #include "dwt.h"
 #include "usart2.h"
 #include "dht11_task.h"
+#include "mpu_test_task.h"
 
 /* USER CODE END Includes */
 
@@ -55,7 +56,7 @@ DMA_HandleTypeDef hdma_usart2_tx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -142,7 +143,8 @@ int main(void)
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-
+  xTaskCreate(vDht11Task,   "DHT11", 384, NULL, 5, NULL);
+  xTaskCreate(vMpuTestTask, "MPU",   384, NULL, 4, NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
