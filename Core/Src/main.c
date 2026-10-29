@@ -27,6 +27,7 @@
 #include "usart2.h"
 #include "dht11_task.h"
 #include "imu_rtc_task.h"
+#include "lcd_test_task.h"
 
 /* USER CODE END Includes */
 
@@ -145,6 +146,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   xTaskCreate(vDht11Task,   "DHT11", 384, NULL, 5, NULL);
   xTaskCreate(vImuRtcTask, "IMU_RTC", 512, NULL, 4, NULL);
+  xTaskCreate(vLcdTestTask, "LCD",     384, NULL, 2, NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */

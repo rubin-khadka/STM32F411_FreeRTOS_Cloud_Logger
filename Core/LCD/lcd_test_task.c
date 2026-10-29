@@ -13,7 +13,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#define LCD_TEST_PERIOD_MS  2000U
+#define LCD_TEST_PERIOD_MS  1000U
 
 extern I2C_HandleTypeDef hi2c1;
 
