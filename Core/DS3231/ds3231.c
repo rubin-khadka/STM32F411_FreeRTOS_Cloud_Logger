@@ -153,8 +153,7 @@ DS3231_Status_t DS3231_ReadTemperature(float *out_c)
     return DS3231_ERR_INVALID_ARG;
   }
 
-  /* Single burst read of MSB + LSB — atomic, no race with the 64 s
-   * internal conversion cycle. */
+  /* Single burst read of MSB + LSB — atomic */
   uint8_t buf[2];
   DS3231_Status_t s = ds_read_regs(DS3231_REG_TEMP_MSB, buf, DS3231_TEMP_BURST_LEN);
   if(s != DS3231_OK)
