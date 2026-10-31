@@ -16,7 +16,7 @@ static volatile DisplayMode_t current_mode = DISPLAY_MODE_TEMP_HUM;
 
 void Button_Init(void)
 {
-    g_button_q = xQueueCreate(4U, sizeof(uint8_t));
+    g_button_q = xQueueCreate(10U, sizeof(uint8_t));
     configASSERT(g_button_q != NULL);
 }
 
