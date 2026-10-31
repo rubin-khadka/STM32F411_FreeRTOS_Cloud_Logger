@@ -9,117 +9,193 @@
 #include "lcd.h"
 #include "button.h"
 #include "sensor_data.h"
+#include "usart2.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include <stdio.h>
 #include <string.h>
 
 #define LCD_PERIOD_MS   100U
 
-/* Clamp int32 to [lo, hi] — keeps snprintf output predictable. */
+// Helper
 static int32_t clamp_i32(int32_t v, int32_t lo, int32_t hi)
 {
-    if (v < lo) return lo;
-    if (v > hi) return hi;
+    if (v < lo) { return lo; }
+    if (v > hi) { return hi; }
     return v;
 }
 
-/* Split signed integer into sign char + magnitude, clamped.
- * Result fits in `max_digits` digits for the integer part. */
-static void fmt_scaled(int32_t scaled, int32_t max_abs,
-                       char *sign, int32_t *mag)
+/* Round float × scale to nearest int. */
+static int32_t round_scaled(float v, float scale)
 {
-    if (scaled < 0) { *sign = '-'; *mag = -scaled; }
-    else            { *sign = ' '; *mag =  scaled; }
-    if (*mag > max_abs) *mag = max_abs;
+    float s = v * scale;
+    s += (s >= 0.0f) ? 0.5f : -0.5f;
+    return (int32_t)s;
+}
+
+/* Append C-string. Returns new write pointer. */
+static char* put_str(char *p, const char *s)
+{
+    while (*s != '\0') {
+        *p++ = *s++;
+    }
+    return p;
+}
+
+static char* put_scaled(char *p, int32_t scaled, uint8_t decimals)
+{
+    /* Sign: space for positive, '-' for negative */
+    if (scaled < 0) {
+        *p++ = '-';
+        scaled = -scaled;
+    } else {
+        *p++ = ' ';
+    }
+
+    /* Divisor for the fractional part */
+    uint32_t div = 1U;
+    for (uint8_t i = 0U; i < decimals; i++) {
+        div *= 10U;
+    }
+
+    uint32_t int_part  = (uint32_t)scaled / div;
+    uint32_t frac_part = (uint32_t)scaled % div;
+
+    /* Integer part — variable width, no leading zeros */
+    if (int_part == 0U) {
+        *p++ = '0';
+    } else {
+        char     tmp[10];
+        uint8_t  n = 0U;
+        while (int_part > 0U) {
+            tmp[n++] = (char)('0' + (int_part % 10U));
+            int_part /= 10U;
+        }
+        while (n > 0U) {
+            *p++ = tmp[--n];
+        }
+    }
+
+    /* Fractional part (with '.' separator) */
+    if (decimals > 0U) {
+        *p++ = '.';
+        div /= 10U;
+        while (div > 0U) {
+            *p++ = (char)('0' + (frac_part / div));
+            frac_part %= div;
+            div /= 10U;
+        }
+    }
+
+    return p;
 }
 
 static void render_temp_hum(const SensorData_t *s, char *l1, char *l2)
 {
     if (s->dht_valid) {
-        int32_t t10 = (int32_t)(s->temp_c * 10.0f);
-        int32_t h10 = (int32_t)(s->hum_pct * 10.0f);
-        char    ts, hs;
-        int32_t tm, hm;
+        int32_t t10 = clamp_i32(round_scaled(s->temp_c, 10.0f), -999, 999);
+        int32_t h10 = clamp_i32(round_scaled(s->hum_pct, 10.0f),    0, 999);
 
-        /* temp: clamp to -99.9..99.9 → 3 int digits, 1 frac */
-        fmt_scaled(t10, 999, &ts, &tm);
-        /* hum: clamp to 99.9 → 2 int digits, 1 frac */
-        fmt_scaled(h10, 999, &hs, &hm);
+        char *p = l1;
+        p = put_str(p, "TEMP:");
+        p = put_scaled(p, t10, 1U);
+        p = put_str(p, " C");
+        *p = '\0';
 
-        (void)snprintf(l1, 17, "TEMP:%c%ld.%ld C",
-                       ts, (long)(tm / 10), (long)(tm % 10));
-        (void)snprintf(l2, 17, "HUMD:%c%ld.%ld %%",
-                       hs, (long)(hm / 10), (long)(hm % 10));
+        p = l2;
+        p = put_str(p, "HUMD:");
+        p = put_scaled(p, h10, 1U);
+        p = put_str(p, " %");
+        *p = '\0';
     } else {
-        (void)snprintf(l1, 17, "TEMP: --.- C");
-        (void)snprintf(l2, 17, "HUMD: --.- %%");
+        (void)strcpy(l1, "TEMP: --.- C");
+        (void)strcpy(l2, "HUMD: --.- %");
     }
 }
 
 static void render_accel(const SensorData_t *s, char *l1, char *l2)
 {
     if (s->imu_valid) {
-        /* accel: clamp to ±9.99 g → 1 int digit, 2 frac, fits in 6 chars */
-        int32_t ax = (int32_t)(s->ax_g * 100.0f);
-        int32_t ay = (int32_t)(s->ay_g * 100.0f);
-        int32_t az = (int32_t)(s->az_g * 100.0f);
-        char    axs, ays, azs;
-        int32_t axm, aym, azm;
+        /* 2 decimals, clamp ±9.99 g → max 5 chars per value */
+        int32_t ax = clamp_i32(round_scaled(s->ax_g, 100.0f), -999, 999);
+        int32_t ay = clamp_i32(round_scaled(s->ay_g, 100.0f), -999, 999);
+        int32_t az = clamp_i32(round_scaled(s->az_g, 100.0f), -999, 999);
 
-        fmt_scaled(ax, 999, &axs, &axm);   /* max 9.99 */
-        fmt_scaled(ay, 999, &ays, &aym);
-        fmt_scaled(az, 999, &azs, &azm);
+        char *p = l1;
+        p = put_str(p, "X:");
+        p = put_scaled(p, ax, 2U);
+        p = put_str(p, " Y:");
+        p = put_scaled(p, ay, 2U);
+        *p = '\0';
 
-        (void)snprintf(l1, 17, "X:%c%ld.%02ld Y:%c%ld.%02ld",
-                       axs, (long)(axm / 100), (long)(axm % 100),
-                       ays, (long)(aym / 100), (long)(aym % 100));
-        (void)snprintf(l2, 17, "Z:%c%ld.%02ld g",
-                       azs, (long)(azm / 100), (long)(azm % 100));
+        p = l2;
+        p = put_str(p, "Z:");
+        p = put_scaled(p, az, 2U);
+        p = put_str(p, " g");
+        *p = '\0';
     } else {
-        (void)snprintf(l1, 17, "X:--.-- Y:--.--");
-        (void)snprintf(l2, 17, "Z:--.-- g");
+        (void)strcpy(l1, "X: --.-- Y: --.--");
+        (void)strcpy(l2, "Z: --.-- g");
     }
 }
 
 static void render_gyro(const SensorData_t *s, char *l1, char *l2)
 {
     if (s->imu_valid) {
-        /* gyro: clamp to ±999.9 dps → 3 int digits, 1 frac */
-        int32_t gx = (int32_t)(s->gx_dps * 10.0f);
-        int32_t gy = (int32_t)(s->gy_dps * 10.0f);
-        int32_t gz = (int32_t)(s->gz_dps * 10.0f);
-        char    gxs, gys, gzs;
-        int32_t gxm, gym, gzm;
+        /* 0 decimals, clamp ±999 dps → max 4 chars per value, fits 16 cols */
+        int32_t gx = clamp_i32((int32_t)s->gx_dps, -999, 999);
+        int32_t gy = clamp_i32((int32_t)s->gy_dps, -999, 999);
+        int32_t gz = clamp_i32((int32_t)s->gz_dps, -999, 999);
 
-        fmt_scaled(gx, 9999, &gxs, &gxm);  /* max 999.9 */
-        fmt_scaled(gy, 9999, &gys, &gym);
-        fmt_scaled(gz, 9999, &gzs, &gzm);
+        char *p = l1;
+        p = put_str(p, "X:");
+        p = put_scaled(p, gx, 0U);
+        p = put_str(p, " Y:");
+        p = put_scaled(p, gy, 0U);
+        *p = '\0';
 
-        (void)snprintf(l1, 17, "X:%c%ld.%ld Y:%c%ld.%ld",
-                       gxs, (long)(gxm / 10), (long)(gxm % 10),
-                       gys, (long)(gym / 10), (long)(gym % 10));
-        (void)snprintf(l2, 17, "Z:%c%ld.%ld dps",
-                       gzs, (long)(gzm / 10), (long)(gzm % 10));
+        p = l2;
+        p = put_str(p, "Z:");
+        p = put_scaled(p, gz, 0U);
+        p = put_str(p, " dps");
+        *p = '\0';
     } else {
-        (void)snprintf(l1, 17, "X:--.- Y:--.-");
-        (void)snprintf(l2, 17, "Z:--.- dps");
+        (void)strcpy(l1, "X: --- Y: ---");
+        (void)strcpy(l2, "Z: --- dps");
     }
 }
 
 static void render_datetime(const SensorData_t *s, char *l1, char *l2)
 {
     if (s->rtc_valid) {
-        (void)snprintf(l1, 17, "20%02d-%02d-%02d",
-                       (int)s->rtc.year, (int)s->rtc.month, (int)s->rtc.date);
-        (void)snprintf(l2, 17, "%02d:%02d:%02d",
-                       (int)s->rtc.hour, (int)s->rtc.min, (int)s->rtc.sec);
+        char *p = l1;
+        p = put_str(p, "20");
+        *p++ = (char)('0' + (s->rtc.year  / 10U));
+        *p++ = (char)('0' + (s->rtc.year  % 10U));
+        *p++ = '-';
+        *p++ = (char)('0' + (s->rtc.month / 10U));
+        *p++ = (char)('0' + (s->rtc.month % 10U));
+        *p++ = '-';
+        *p++ = (char)('0' + (s->rtc.date  / 10U));
+        *p++ = (char)('0' + (s->rtc.date  % 10U));
+        *p = '\0';
+
+        p = l2;
+        *p++ = (char)('0' + (s->rtc.hour / 10U));
+        *p++ = (char)('0' + (s->rtc.hour % 10U));
+        *p++ = ':';
+        *p++ = (char)('0' + (s->rtc.min  / 10U));
+        *p++ = (char)('0' + (s->rtc.min  % 10U));
+        *p++ = ':';
+        *p++ = (char)('0' + (s->rtc.sec  / 10U));
+        *p++ = (char)('0' + (s->rtc.sec  % 10U));
+        *p = '\0';
     } else {
-        (void)snprintf(l1, 17, "20--.--.--");
-        (void)snprintf(l2, 17, "--:--:--");
+        (void)strcpy(l1, "20--.--.--");
+        (void)strcpy(l2, "--:--:--");
     }
 }
 
+// LCD write
 static void lcd_write_line(uint8_t row, const char *text)
 {
     LCD_SetCursor(row, 0U);
@@ -134,11 +210,14 @@ static void lcd_write_line(uint8_t row, const char *text)
     }
 }
 
+// Task
 void vLcdTask(void *pv)
 {
     (void) pv;
 
-    LCD_Init();
+    if (LCD_Init() != LCD_OK) {
+        (void) USART2_Printf("LCD: init failed\r\n");
+    }
 
     TickType_t   last_wake = xTaskGetTickCount();
     SensorData_t snap;

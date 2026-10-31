@@ -80,26 +80,29 @@ static void lcd_send_data(uint8_t data)
 
 LCD_Status_t LCD_Init(void)
 {
-  /* Power-up delay */
-  vTaskDelay(pdMS_TO_TICKS(100));
+    /* Verify the PCF8574 responds before the init sequence. */
+    if (HAL_I2C_IsDeviceReady(&hi2c1, LCD_ADDR_8BIT, 3U, 50U) != HAL_OK) {
+        return LCD_ERR_IO;
+    }
 
-  /* HD44780 reset sequence — three 8-bit mode, then switch to 4-bit */
-  lcd_send_nibble(0x30U, 0U);
-  vTaskDelay(pdMS_TO_TICKS(5));
-  lcd_send_nibble(0x30U, 0U);
-  DWT_Delay_us(200U);
-  lcd_send_nibble(0x30U, 0U);
-  DWT_Delay_us(200U);
-  lcd_send_nibble(0x20U, 0U); /* switch to 4-bit mode */
-  DWT_Delay_us(200U);
+    vTaskDelay(pdMS_TO_TICKS(100));
 
-  lcd_send_cmd(LCD_CMD_4BIT_2LINE);
-  lcd_send_cmd(LCD_CMD_DISPLAY_OFF);
-  lcd_send_cmd(LCD_CMD_CLEAR);
-  lcd_send_cmd(LCD_CMD_ENTRY_MODE);
-  lcd_send_cmd(LCD_CMD_DISPLAY_ON);
+    lcd_send_nibble(0x30U, 0U);
+    vTaskDelay(pdMS_TO_TICKS(5));
+    lcd_send_nibble(0x30U, 0U);
+    DWT_Delay_us(200U);
+    lcd_send_nibble(0x30U, 0U);
+    DWT_Delay_us(200U);
+    lcd_send_nibble(0x20U, 0U);
+    DWT_Delay_us(200U);
 
-  return LCD_OK;
+    lcd_send_cmd(LCD_CMD_4BIT_2LINE);
+    lcd_send_cmd(LCD_CMD_DISPLAY_OFF);
+    lcd_send_cmd(LCD_CMD_CLEAR);
+    lcd_send_cmd(LCD_CMD_ENTRY_MODE);
+    lcd_send_cmd(LCD_CMD_DISPLAY_ON);
+
+    return LCD_OK;
 }
 
 void LCD_Clear(void)

@@ -20,7 +20,7 @@ typedef enum
   LCD_ERR_IO
 } LCD_Status_t;
 
-LCD_Status_t LCD_Init(void); /* must run inside a task */
+LCD_Status_t LCD_Init(void);
 void LCD_Clear(void);
 void LCD_SetCursor(uint8_t row, uint8_t col); /* row: 0 or 1, col: 0–15 */
 void LCD_SendChar(char c);

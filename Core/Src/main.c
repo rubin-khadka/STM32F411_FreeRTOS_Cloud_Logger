@@ -29,7 +29,7 @@
 #include "sensor_data.h"
 #include "button_task.h"
 #include "dht11_task.h"
-
+#include "lcd_task.h"
 #include "imu_rtc_task.h"
 
 /* USER CODE END Includes */
@@ -60,7 +60,7 @@ DMA_HandleTypeDef hdma_usart2_tx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -153,6 +153,7 @@ int main(void)
   xTaskCreate(vDht11Task, "DHT11", 384, NULL, 5, NULL);
   xTaskCreate(vImuRtcTask, "IMU_RTC", 512, NULL, 4, NULL);
   xTaskCreate(vButtonTask, "BTN", 384, NULL, 3, NULL);
+  xTaskCreate(vLcdTask,"LCD", 512, NULL, 2, NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -395,18 +396,17 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
-  /* USER CODE BEGIN 5 */
+  (void)argument;
 
-  (void) USART2_Printf("\r\n=== STM32F411 FreeRTOS Cloud Logger ===\r\n");
-  (void) USART2_Printf("SYSCLK: %lu Hz\r\n", (unsigned long) SystemCoreClock);
-  (void) USART2_Printf("APB1:   %lu Hz\r\n", (unsigned long) HAL_RCC_GetPCLK1Freq());
+  (void) USART2_Printf("\r\n=== Boot: SYSCLK=%lu PCLK1=%lu ===\r\n",
+                       (unsigned long)SystemCoreClock,
+                       (unsigned long)HAL_RCC_GetPCLK1Freq());
 
-  /* Infinite loop */
-  for(;;)
+  for (;;)
   {
-    osDelay(1);
+    vTaskDelay(pdMS_TO_TICKS(60000));
+    (void) USART2_Printf("[HB] heap=%u\r\n", (unsigned)xPortGetFreeHeapSize());
   }
-  /* USER CODE END 5 */
 }
 
 /**
