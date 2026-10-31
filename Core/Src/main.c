@@ -32,6 +32,7 @@
 #include "dht11_task.h"
 #include "lcd_task.h"
 #include "imu_rtc_task.h"
+#include "sd_test_task.h"
 
 /* USER CODE END Includes */
 
@@ -122,6 +123,7 @@ int main(void)
   MX_I2C1_Init();
   MX_I2C2_Init();
   MX_SPI1_Init();
+  MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
   DWT_Init();
   USART2_Init();
@@ -159,6 +161,7 @@ int main(void)
   xTaskCreate(vImuRtcTask, "IMU_RTC", 512, NULL, 4, NULL);
   xTaskCreate(vButtonTask, "BTN", 384, NULL, 3, NULL);
   xTaskCreate(vLcdTask,"LCD", 512, NULL, 2, NULL);
+  xTaskCreate(vSdTestTask,  "SDTEST",  512, NULL, 2, NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
