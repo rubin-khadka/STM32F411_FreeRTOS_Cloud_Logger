@@ -9,6 +9,8 @@
 #define BUTTON_BUTTON_H_
 
 #include <stdint.h>
+#include "FreeRTOS.h"
+#include "queue.h"
 
 /* Display mode */
 typedef enum
@@ -19,6 +21,8 @@ typedef enum
   DISPLAY_MODE_DATETIME = 3,
   DISPLAY_MODE_COUNT = 4
 } DisplayMode_t;
+
+extern QueueHandle_t g_button_q;
 
 /* Button Initialization */
 void Button_Init(void);
