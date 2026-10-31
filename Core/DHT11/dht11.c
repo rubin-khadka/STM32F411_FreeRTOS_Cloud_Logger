@@ -12,7 +12,6 @@
 #include "task.h"
 #include <stdbool.h>
 
-/* Pin — must match CubeMX */
 #define DHT_PORT  GPIOB
 #define DHT_PIN   GPIO_PIN_0
 
@@ -24,7 +23,7 @@
 
 void DHT11_Init(void)
 {
-  HAL_GPIO_WritePin(DHT_PORT, DHT_PIN, GPIO_PIN_SET); /* idle HIGH via pull-up */
+  HAL_GPIO_WritePin(DHT_PORT, DHT_PIN, GPIO_PIN_SET);   /* idle HIGH via pull-up */
 }
 
 static DHT11_Status_t dht_wait_level(GPIO_PinState level, uint32_t timeout_us)
@@ -90,7 +89,7 @@ static DHT11_Status_t dht11_read_byte(uint8_t *out, bool is_last)
         }
       }
     }
-    /* If bit = 0, line is already LOW — next iteration handles it. */
+    /* If bit = 0, line is already LOW, next iteration handles it. */
   }
 
   *out = data;
@@ -107,14 +106,12 @@ DHT11_Status_t DHT11_ReadFrame(DHT11_Data_t *out)
   uint8_t hum_i = 0, hum_d = 0, tmp_i = 0, tmp_d = 0, chk = 0;
   DHT11_Status_t s;
 
-  /* 1. Start pulse: drive LOW 18 ms, then release.
-   *    vTaskDelay yields to other tasks — no CPU burn. */
+  /* 1. Start pulse: drive LOW 18 ms, then release. */
   HAL_GPIO_WritePin(DHT_PORT, DHT_PIN, GPIO_PIN_RESET);
   vTaskDelay(pdMS_TO_TICKS(DHT_START_PULSE_MS));
   HAL_GPIO_WritePin(DHT_PORT, DHT_PIN, GPIO_PIN_SET);
 
-  /* 2. Response + 40 bits, ~4.5 ms busy-wait under critical section.
-   *    Masks SysTick and all peripheral IRQs (priority ≥ configMAX_SYSCALL). */
+  /* 2. Response + 40 bits */
   taskENTER_CRITICAL();
 
   s = dht11_wait_response();
@@ -141,13 +138,13 @@ DHT11_Status_t DHT11_ReadFrame(DHT11_Data_t *out)
 
   taskEXIT_CRITICAL();
 
-  /* 3. Error propagation — outside critical section. */
+  /* 3. Error propagation, outside critical section. */
   if(s != DHT11_OK)
   {
     return s;
   }
 
-  /* 4. Checksum: sum of first 4 bytes mod 256 must equal byte 5. */
+  /* 4. Checksum: sum of first 4 bytes */
   uint8_t sum = (uint8_t) (hum_i + hum_d + tmp_i + tmp_d);
   if(sum != chk)
   {

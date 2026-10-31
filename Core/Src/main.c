@@ -26,6 +26,7 @@
 #include "dwt.h"
 #include "usart2.h"
 #include "button.h"
+#include "sensor_data.h"
 #include "button_task.h"
 #include "dht11_task.h"
 
@@ -119,6 +120,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   DWT_Init();
   USART2_Init();
+  SensorData_Init();
+
   Button_Init();
 
   /* USER CODE END 2 */
@@ -149,7 +152,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   xTaskCreate(vDht11Task, "DHT11", 384, NULL, 5, NULL);
   xTaskCreate(vImuRtcTask, "IMU_RTC", 512, NULL, 4, NULL);
-  xTaskCreate(vButtonTask, "BTN",     384, NULL, 3, NULL);
+  xTaskCreate(vButtonTask, "BTN", 384, NULL, 3, NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
