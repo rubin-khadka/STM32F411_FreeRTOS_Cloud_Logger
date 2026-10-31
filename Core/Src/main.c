@@ -29,7 +29,7 @@
 #include "button_task.h"
 #include "dht11_task.h"
 
-#include "../Utils/imu_rtc_task.h"
+#include "imu_rtc_task.h"
 
 /* USER CODE END Includes */
 
