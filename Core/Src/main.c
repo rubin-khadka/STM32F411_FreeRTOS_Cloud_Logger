@@ -25,9 +25,11 @@
 
 #include "dwt.h"
 #include "usart2.h"
+#include "button.h"
+#include "button_task.h"
 #include "dht11_task.h"
-#include "imu_rtc_task.h"
-#include "lcd_test_task.h"
+
+#include "../Utils/imu_rtc_task.h"
 
 /* USER CODE END Includes */
 
@@ -57,7 +59,7 @@ DMA_HandleTypeDef hdma_usart2_tx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 256 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -117,6 +119,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   DWT_Init();
   USART2_Init();
+  Button_Init();
 
   /* USER CODE END 2 */
 
@@ -144,9 +147,9 @@ int main(void)
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  xTaskCreate(vDht11Task,   "DHT11", 384, NULL, 5, NULL);
+  xTaskCreate(vDht11Task, "DHT11", 384, NULL, 5, NULL);
   xTaskCreate(vImuRtcTask, "IMU_RTC", 512, NULL, 4, NULL);
-  xTaskCreate(vLcdTestTask, "LCD",     384, NULL, 2, NULL);
+  xTaskCreate(vButtonTask, "BTN",     384, NULL, 3, NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -351,12 +354,25 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
 
+  /*Configure GPIO pins : BTN1_Pin BTN2_Pin */
+  GPIO_InitStruct.Pin = BTN1_Pin|BTN2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /*Configure GPIO pin : PB0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
