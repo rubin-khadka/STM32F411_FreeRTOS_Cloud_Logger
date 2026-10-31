@@ -21,8 +21,8 @@
 /* Burst length (accel 6 + temp 2 + gyro 6) */
 #define MPU6050_BURST_LEN         ((uint16_t) 14U)
 
-/* Expected WHO_AM_I values, cast to uint8_t so comparisons stay */
-#define MPU_ID_MPU6050            ((uint8_t) 0x68U)
+/* Expected WHO_AM_I values */
+#define MPU_ID_MPU6050            ((uint8_t) 0x68U) // Returns this
 #define MPU_ID_CLONE              ((uint8_t) 0x69U)
 
 typedef enum {

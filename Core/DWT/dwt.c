@@ -10,7 +10,7 @@
 
 #define DWT_CYCCNT_R  (DWT->CYCCNT)
 
-/* Cycles for `us` microseconds. 32-bit wrap-safe under unsigned arithmetic. */
+/* Cycles for microseconds. 32-bit wrap-safe under unsigned arithmetic. */
 static inline uint32_t us_to_cycles(uint32_t us)
 {
     return us * (SystemCoreClock / 1000000U);
@@ -45,7 +45,6 @@ uint32_t DWT_GetCycles(void)
 
 bool DWT_Elapsed_us(uint32_t start_cycles, uint32_t us)
 {
-    /* Unsigned subtraction handles CYCCNT 32-bit wrap (~42.9 s at 100 MHz).
-     * Safe for any timeout < one wrap period. */
+    /* Unsigned subtraction handles CYCCNT 32-bit wrap */
     return (DWT_CYCCNT_R - start_cycles) > us_to_cycles(us);
 }

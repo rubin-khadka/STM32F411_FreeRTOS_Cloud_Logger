@@ -110,7 +110,7 @@ DS3231_Status_t DS3231_SetTime(const DS3231_Time_t *in)
     return DS3231_ERR_INVALID_ARG;
   }
 
-  /* Range check — reject anything obviously invalid before writing */
+  /* Range check */
   if((in->sec > 59U) || (in->min > 59U) || (in->hour > 23U) || (in->dow < 1U) || (in->dow > 7U) || (in->date < 1U)
       || (in->date > 31U) || (in->month < 1U) || (in->month > 12U) || (in->year > 99U))
   {
@@ -161,8 +161,7 @@ DS3231_Status_t DS3231_ReadTemperature(float *out_c)
     return s;
   }
 
-  /* Format: MSB = signed integer part, LSB[7:6] = fractional × 0.25 °C.
-   * Example: MSB = -6 (0xFA), LSB[7:6] = 0b01 → -6 + 0.25 = -5.75 °C */
+  /* Format: MSB = signed integer part, LSB[7:6] = fractional × 0.25 °C. */
   int8_t int_part = (int8_t) buf[0];
   uint8_t frac_q = (uint8_t) (((uint32_t) buf[1] >> 6U) & 0x03U); /* 0..3 */
   *out_c = (float) int_part + ((float) frac_q * 0.25f);

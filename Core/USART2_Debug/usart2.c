@@ -5,7 +5,7 @@
  *      Author: Rubin Khadka
  */
 
-#include "../USART2_Debug/usart2.h"
+#include "usart2.h"
 
 #include "main.h"
 #include "FreeRTOS.h"
@@ -112,8 +112,7 @@ USART2_Status_t USART2_Flush(uint32_t timeout_ms)
   return USART2_OK;
 }
 
-/* HAL weak callbacks. Only ONE definition allowed project-wide.
- * When USART1 (ESP8266) is added, extend with `else if`, do not redefine. */
+/* HAL weak callbacks */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
   if(huart->Instance == USART2)
@@ -128,7 +127,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
   if(huart->Instance == USART2)
   {
-    /* DMA aborted — release to avoid permanent stall on next Write. */
+    /* DMA aborted, release to avoid permanent stall on next Write. */
     BaseType_t hpw = pdFALSE;
     (void) xSemaphoreGiveFromISR(s_tx_free, &hpw);
     portYIELD_FROM_ISR(hpw);
