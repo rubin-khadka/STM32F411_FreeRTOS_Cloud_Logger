@@ -30,7 +30,7 @@ extern SPI_HandleTypeDef hspi2;
 /* ---------- Network configuration (pure static) ---------- */
 static wiz_NetInfo s_net_info = {
     .mac  = {0x02, 0x00, 0x00, 0x00, 0x00, 0x01},   /* locally administered */
-    .ip   = {192, 168, 1, 177},                     /* this board           */
+    .ip   = {192, 168, 2, 10},                     /* this board           */
     .sn   = {255, 255, 255, 0},                     /* same as PC           */
     .gw   = {0, 0, 0, 0},                           /* no gateway           */
     .dns  = {0, 0, 0, 0},                           /* no DNS               */
@@ -112,4 +112,9 @@ W5500_Status_t W5500_Init(void)
     (void)ctlnetwork(CN_SET_NETINFO, (void *)&s_net_info);
 
     return W5500_OK;
+}
+
+const wiz_NetInfo *W5500_GetNetInfo(void)
+{
+    return &s_net_info;
 }

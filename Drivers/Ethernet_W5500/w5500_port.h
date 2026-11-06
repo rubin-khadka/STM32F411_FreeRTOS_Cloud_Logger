@@ -9,6 +9,7 @@
 #define ETHERNET_W5500_W5500_PORT_H_
 
 #include <stdint.h>
+#include "wizchip_conf.h"
 
 typedef enum {
     W5500_OK        =  0,
@@ -18,5 +19,7 @@ typedef enum {
 } W5500_Status_t;
 
 W5500_Status_t W5500_Init(void);
+
+const wiz_NetInfo *W5500_GetNetInfo(void);
 
 #endif /* ETHERNET_W5500_W5500_PORT_H_ */
