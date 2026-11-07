@@ -11,6 +11,7 @@
 #include "socket.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "usart2.h"
 
 /* ---------- Chip connection ---------- */
 
@@ -27,10 +28,38 @@ extern SPI_HandleTypeDef hspi2;
 #define W5500_LINK_RETRIES     10U
 #define W5500_LINK_POLL_MS     500U
 
+static void W5500_Force10MbpsFullDuplex(void)
+{
+    uint8_t phycfgr = getPHYCFGR();
+
+    /* Clear OPMD (bit 6) and OPMDC (bits 5:3) */
+    phycfgr &= ~(0x40U | 0x38U);
+
+    /* Set OPMD = 1 (use OPMDC) and OPMDC = 001 (10BT full-duplex) */
+    phycfgr |= 0x40U | 0x08U;
+
+    /* Ensure RST bit is 1 (normal operation) */
+    phycfgr |= 0x80U;
+
+    setPHYCFGR(phycfgr);
+
+    /* The datasheet requires a PHY reset after changing the operation mode.
+     * Toggle the RST bit to 0, then back to 1, then wait for the PHY to
+     * re-negotiate. */
+    uint8_t rst_low = phycfgr & ~0x80U;
+    setPHYCFGR(rst_low);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    setPHYCFGR(phycfgr);
+    vTaskDelay(pdMS_TO_TICKS(500));   /* wait for PHY to settle */
+
+    (void)USART2_Printf("W5500: forced 10M full-duplex, PHYCFGR now 0x%02X\r\n",
+                        (unsigned)getPHYCFGR());
+}
+
 /* ---------- Network configuration (pure static) ---------- */
 static wiz_NetInfo s_net_info = {
     .mac  = {0x02, 0x00, 0x00, 0x00, 0x00, 0x01},   /* locally administered */
-    .ip   = {192, 168, 2, 10},                     /* this board           */
+    .ip   = {192, 168, 2, 10},                      /* this board           */
     .sn   = {255, 255, 255, 0},                     /* same as PC           */
     .gw   = {0, 0, 0, 0},                           /* no gateway           */
     .dns  = {0, 0, 0, 0},                           /* no DNS               */
@@ -110,6 +139,8 @@ W5500_Status_t W5500_Init(void)
     /* --- Apply static network config --- */
     setSHAR(s_net_info.mac);
     (void)ctlnetwork(CN_SET_NETINFO, (void *)&s_net_info);
+
+    W5500_Force10MbpsFullDuplex();
 
     return W5500_OK;
 }

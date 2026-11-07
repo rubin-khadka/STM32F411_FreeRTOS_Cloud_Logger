@@ -32,7 +32,6 @@
 #include "dht11_task.h"
 #include "lcd_task.h"
 #include "imu_rtc_task.h"
-#include "w5500_test_task.h"
 #include "sd_task.h"
 
 /* USER CODE END Includes */
@@ -61,13 +60,14 @@ SPI_HandleTypeDef hspi2;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
+DMA_HandleTypeDef hdma_usart1_rx;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -169,7 +169,6 @@ int main(void)
   xTaskCreate(vButtonTask, "BTN", 384, NULL, 3, NULL);
   xTaskCreate(vSdTask, "SD", 768, NULL, 3, NULL);
   xTaskCreate(vLcdTask, "LCD", 512, NULL, 2, NULL);
-  xTaskCreate(vW5500TestTask, "W5500TEST", 512, NULL, 2, NULL);
 
   /* USER CODE END RTOS_THREADS */
 
@@ -456,11 +455,15 @@ static void MX_DMA_Init(void)
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
+  __HAL_RCC_DMA2_CLK_ENABLE();
 
   /* DMA interrupt init */
   /* DMA1_Stream6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
+  /* DMA2_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
 
 }
 
