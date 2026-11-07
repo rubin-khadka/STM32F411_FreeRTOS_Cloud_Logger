@@ -35,6 +35,7 @@
 #include "sd_task.h"
 
 #include "cloud_task.h"
+#include "w5500_test_task.h"
 
 /* USER CODE END Includes */
 
@@ -171,6 +172,7 @@ int main(void)
   xTaskCreate(vButtonTask, "BTN", 384, NULL, 3, NULL);
   xTaskCreate(vSdTask, "SD", 768, NULL, 3, NULL);
   xTaskCreate(vLcdTask, "LCD", 512, NULL, 2, NULL);
+  xTaskCreate(vW5500TestTask, "W5500TEST", 512, NULL, 2, NULL);
   xTaskCreate(vCloudTask, "CLOUD", 768, NULL, 1, NULL);
 
   /* USER CODE END RTOS_THREADS */
