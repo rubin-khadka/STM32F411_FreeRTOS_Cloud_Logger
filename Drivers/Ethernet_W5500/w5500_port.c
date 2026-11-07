@@ -62,7 +62,10 @@ static void W5500_WriteByte(uint8_t byte)
 
 W5500_Status_t W5500_Init(void)
 {
-  uint8_t memsize[2][8] = { { 2, 2, 2, 2, 2, 2, 2, 2 }, { 2, 2, 2, 2, 2, 2, 2, 2 } };
+  uint8_t memsize[2][8] = {
+      { 8, 2, 2, 2, 2, 0, 0, 0 },
+      { 2, 2, 2, 2, 2, 2, 2, 2 }
+  };
 
   /* --- Hard reset --- */
   W5500_RST_LOW();

@@ -28,14 +28,14 @@
 #include "usart2.h"
 #include "button.h"
 #include "sensor_data.h"
-#include "button_task.h"
-#include "dht11_task.h"
-#include "lcd_task.h"
-#include "imu_rtc_task.h"
-#include "sd_task.h"
 
-#include "cloud_task.h"
+#include "dht11_task.h"
+#include "imu_rtc_task.h"
+#include "button_task.h"
+#include "lcd_task.h"
+#include "sd_task.h"
 #include "net_task.h"
+#include "cloud_task.h"
 
 /* USER CODE END Includes */
 
@@ -168,11 +168,15 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   xTaskCreate(vDht11Task, "DHT11", 384, NULL, 5, NULL);
+
   xTaskCreate(vImuRtcTask, "IMU_RTC", 512, NULL, 4, NULL);
+
   xTaskCreate(vButtonTask, "BTN", 384, NULL, 3, NULL);
   xTaskCreate(vSdTask, "SD", 768, NULL, 3, NULL);
+
   xTaskCreate(vLcdTask, "LCD", 512, NULL, 2, NULL);
-  xTaskCreate(vNetTask, "NET", 512, NULL, 2, NULL);
+  xTaskCreate(vNetTask, "NET", 768, NULL, 2, NULL);
+
   xTaskCreate(vCloudTask, "CLOUD", 768, NULL, 1, NULL);
 
   /* USER CODE END RTOS_THREADS */
