@@ -5,7 +5,6 @@
  *      Author: Rubin Khadka
  */
 
-
 #include "cloud_task.h"
 #include "esp8266.h"
 #include "mqtt.h"
@@ -233,56 +232,44 @@ void vCloudTask(void *pv)
   TickType_t last_wake = xTaskGetTickCount();
   SensorData_t snap;
   char payload[160];
-  bool do_dht = true;
   uint32_t n = 0U;
 
   for(;;)
   {
     SensorData_GetSnapshot(&snap);
+    bool any_fail = false;
 
-    bool ok = true;
-    if(do_dht)
+    /* --- DHT channel --- */
+    if(snap.dht_valid)
     {
-      if(snap.dht_valid)
+      build_dht_payload(&snap, payload);
+      if(cloud_publish(TOPIC_DHT, payload))
       {
-        build_dht_payload(&snap, payload);
-        ok = cloud_publish(TOPIC_DHT, payload);
-        if(ok)
-        {
-          (void) USART2_Printf("CLOUD: [%lu] DHT ok  %s\r\n", (unsigned long) n, payload);
-        }
-        else
-        {
-          (void) USART2_Printf("CLOUD: [%lu] DHT FAILED\r\n", (unsigned long) n);
-        }
+        (void) USART2_Printf("CLOUD: [%lu] DHT ok  %s\r\n", (unsigned long) n, payload);
       }
       else
       {
-        (void) USART2_Printf("CLOUD: [%lu] DHT not ready\r\n", (unsigned long) n);
-      }
-    }
-    else
-    {
-      if(snap.imu_valid)
-      {
-        build_imu_payload(&snap, payload);
-        ok = cloud_publish(TOPIC_IMU, payload);
-        if(ok)
-        {
-          (void) USART2_Printf("CLOUD: [%lu] IMU ok  %s\r\n", (unsigned long) n, payload);
-        }
-        else
-        {
-          (void) USART2_Printf("CLOUD: [%lu] IMU FAILED\r\n", (unsigned long) n);
-        }
-      }
-      else
-      {
-        (void) USART2_Printf("CLOUD: [%lu] IMU not ready\r\n", (unsigned long) n);
+        (void) USART2_Printf("CLOUD: [%lu] DHT FAILED\r\n", (unsigned long) n);
+        any_fail = true;
       }
     }
 
-    if(!ok)
+    /* --- IMU channel --- */
+    if(snap.imu_valid)
+    {
+      build_imu_payload(&snap, payload);
+      if(cloud_publish(TOPIC_IMU, payload))
+      {
+        (void) USART2_Printf("CLOUD: [%lu] IMU ok  %s\r\n", (unsigned long) n, payload);
+      }
+      else
+      {
+        (void) USART2_Printf("CLOUD: [%lu] IMU FAILED\r\n", (unsigned long) n);
+        any_fail = true;
+      }
+    }
+
+    if(any_fail)
     {
       (void) USART2_Printf("CLOUD: reconnecting...\r\n");
       if(!cloud_connect())
@@ -295,7 +282,6 @@ void vCloudTask(void *pv)
       }
     }
 
-    do_dht = !do_dht;
     n++;
     vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(CLOUD_CYCLE_MS));
   }

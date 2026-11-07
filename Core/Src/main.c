@@ -34,6 +34,8 @@
 #include "imu_rtc_task.h"
 #include "sd_task.h"
 
+#include "cloud_task.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -67,7 +69,7 @@ DMA_HandleTypeDef hdma_usart2_tx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 256 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -169,6 +171,7 @@ int main(void)
   xTaskCreate(vButtonTask, "BTN", 384, NULL, 3, NULL);
   xTaskCreate(vSdTask, "SD", 768, NULL, 3, NULL);
   xTaskCreate(vLcdTask, "LCD", 512, NULL, 2, NULL);
+  xTaskCreate(vCloudTask, "CLOUD", 768, NULL, 1, NULL);
 
   /* USER CODE END RTOS_THREADS */
 
