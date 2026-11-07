@@ -19,7 +19,7 @@ extern SPI_HandleTypeDef hspi1;
 
 #define SD_SPI_TIMEOUT_MS   1000U
 
-/* Static dummy TX buffer for SPI reads (0xFF = "read a byte") */
+/* Static dummy TX buffer for SPI reads */
 static uint8_t  s_dummy_tx[512];
 
 volatile uint8_t card_initialized = 0U;

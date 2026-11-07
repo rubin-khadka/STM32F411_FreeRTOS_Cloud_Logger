@@ -26,10 +26,10 @@
 #define DS3231_REG_TEMP_LSB  (0x12U)
 
 /* Burst lengths */
-#define DS3231_TIME_BURST_LEN  ((uint16_t) 7U)   /* seconds..year */
-#define DS3231_TEMP_BURST_LEN  ((uint16_t) 2U)   /* MSB + LSB */
+#define DS3231_TIME_BURST_LEN  ((uint16_t) 7U)
+#define DS3231_TEMP_BURST_LEN  ((uint16_t) 2U)
 
-/* Status register: Oscillator Stop Flag (bit 7). */
+/* Status register: Oscillator Stop Flag. */
 #define DS3231_STATUS_OSF    (0x80U)
 
 typedef enum {
@@ -38,7 +38,7 @@ typedef enum {
     DS3231_ERR_NOT_FOUND,      /* I2C NACK at 0x68 */
     DS3231_ERR_READ,
     DS3231_ERR_WRITE,
-    DS3231_ERR_TIME_INVALID    /* OSF set — time was lost, must call SetTime() */
+    DS3231_ERR_TIME_INVALID    /* OSF set — time was lost */
 } DS3231_Status_t;
 
 /* All fields decoded from BCD to plain binary. */
@@ -52,9 +52,9 @@ typedef struct {
     uint8_t year;     /* 0–99 → 2000–2099 */
 } DS3231_Time_t;
 
-DS3231_Status_t DS3231_Init(void);                                /* returns ERR_TIME_INVALID if OSF set */
+DS3231_Status_t DS3231_Init(void);
 DS3231_Status_t DS3231_ReadTime(DS3231_Time_t *out);
-DS3231_Status_t DS3231_SetTime(const DS3231_Time_t *in);          /* writes time + clears OSF */
+DS3231_Status_t DS3231_SetTime(const DS3231_Time_t *in);
 DS3231_Status_t DS3231_ReadTemperature(float *out_c);
 
 #endif /* DS3231_DS3231_H_ */

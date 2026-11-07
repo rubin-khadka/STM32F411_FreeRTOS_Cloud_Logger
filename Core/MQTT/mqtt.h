@@ -19,7 +19,6 @@ uint16_t MQTT_BuildConnect(
     uint16_t keepalive_s);
 
 uint16_t MQTT_BuildPublish(uint8_t *buf, uint16_t buf_len, const char *topic, const char *payload);
-
 uint16_t MQTT_BuildPingReq(uint8_t *buf, uint16_t buf_len);
 uint16_t MQTT_BuildDisconnect(uint8_t *buf, uint16_t buf_len);
 

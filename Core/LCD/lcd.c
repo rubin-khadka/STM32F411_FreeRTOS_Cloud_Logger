@@ -19,7 +19,7 @@ extern I2C_HandleTypeDef hi2c1;
 /* PCF8574 bit assignments on the backpack */
 #define LCD_BACKLIGHT     (0x08U)
 #define LCD_ENABLE        (0x04U)
-#define LCD_RW            (0x02U)   /* unused — always write mode */
+#define LCD_RW            (0x02U)
 #define LCD_RS            (0x01U)
 
 /* HD44780 command opcodes (subset used by init) */
@@ -49,7 +49,7 @@ static void lcd_send_nibble(uint8_t nibble, uint8_t rs)
 
   /* EN high */
   (void) lcd_write_byte((uint8_t) (data | LCD_ENABLE));
-  DWT_Delay_us(2U); /* EN pulse width (spec ≥ 450 ns) */
+  DWT_Delay_us(2U); /* EN pulse width */
 
   /* EN low */
   (void) lcd_write_byte((uint8_t) (data & (uint8_t) (~LCD_ENABLE)));

@@ -58,12 +58,12 @@ DS3231_Status_t DS3231_Init(void)
   DS3231_Status_t s = ds_read_regs(DS3231_REG_STATUS, &status, (uint16_t) 1U);
   if(s != DS3231_OK)
   {
-    return DS3231_ERR_NOT_FOUND; /* I2C NACK — no device at 0x68 */
+    return DS3231_ERR_NOT_FOUND; /* I2C NACK */
   }
 
   if((status & DS3231_STATUS_OSF) != 0U)
   {
-    return DS3231_ERR_TIME_INVALID; /* time was lost — caller must SetTime */
+    return DS3231_ERR_TIME_INVALID; /* time was lost */
   }
 
   return DS3231_OK;
@@ -85,9 +85,9 @@ DS3231_Status_t DS3231_ReadTime(DS3231_Time_t *out)
 
   /* Decode BCD, masking control bits.
    * Mask list:
-   *   seconds: bit 7 = CH (clock halt) — not used on DS3231, mask anyway
+   *   seconds: bit 7 = CH
    *   minutes: bit 7 = 0
-   *   hours:   bit 6 = 12/24 mode, bit 5 = AM/PM in 12h mode; assume 24h → mask 0x3F
+   *   hours:   bit 6 = 12/24 mode
    *   dow:     bits 7–3 = 0
    *   date:    bits 7–6 = 0
    *   month:   bit 7 = century, bit 6 = 0
@@ -153,7 +153,7 @@ DS3231_Status_t DS3231_ReadTemperature(float *out_c)
     return DS3231_ERR_INVALID_ARG;
   }
 
-  /* Single burst read of MSB + LSB — atomic */
+  /* Single burst read of MSB + LSB */
   uint8_t buf[2];
   DS3231_Status_t s = ds_read_regs(DS3231_REG_TEMP_MSB, buf, DS3231_TEMP_BURST_LEN);
   if(s != DS3231_OK)
@@ -163,7 +163,8 @@ DS3231_Status_t DS3231_ReadTemperature(float *out_c)
 
   /* Format: MSB = signed integer part, LSB[7:6] = fractional × 0.25 °C. */
   int8_t int_part = (int8_t) buf[0];
-  uint8_t frac_q = (uint8_t) (((uint32_t) buf[1] >> 6U) & 0x03U); /* 0..3 */
+  uint8_t frac_q = (uint8_t) (((uint32_t) buf[1] >> 6U) & 0x03U);
+
   *out_c = (float) int_part + ((float) frac_q * 0.25f);
 
   return DS3231_OK;

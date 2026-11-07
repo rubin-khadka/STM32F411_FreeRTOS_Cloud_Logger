@@ -18,7 +18,7 @@
 
 #include "secrets.h"
 
-/* --- Secrets (from secrets.h, gitignored) --- */
+/* --- Secrets --- */
 #define WIFI_SSID           SECRET_WIFI_SSID
 #define WIFI_PASS           SECRET_WIFI_PASS
 #define MQTT_CLIENT_ID      SECRET_MQTT_CLIENT_ID
@@ -132,7 +132,7 @@ static void build_imu_payload(const SensorData_t *s, char *buf)
   *p = '\0';
 }
 
-/* ---------- Connect — silent on success, prints only on failure ---------- */
+/* ---------- Connect ---------- */
 
 static bool cloud_connect(void)
 {

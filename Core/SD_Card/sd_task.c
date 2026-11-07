@@ -139,7 +139,7 @@ void vSdTask(void *pv)
 {
     (void)pv;
 
-    /* --- Mount (auto-format if blank) --- */
+    /* --- Mount --- */
     FRESULT res = f_mount(&USERFatFS, USERPath, 1);
 
     if (res == FR_NO_FILESYSTEM) {

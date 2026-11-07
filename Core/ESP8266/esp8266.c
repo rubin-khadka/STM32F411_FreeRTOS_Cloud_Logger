@@ -15,7 +15,7 @@
 
 extern UART_HandleTypeDef huart1;
 
-/* ---------- RX ring buffer (DMA target) ---------- */
+/* ---------- RX ring buffer ---------- */
 
 #define ESP_RX_RING_SIZE    2048U
 
@@ -91,7 +91,7 @@ ESP8266_Status_t ESP8266_SendCommand(const char *cmd, const char *ack, uint32_t 
 
   size_t cmd_len = strlen(cmd);
 
-  /* Send command over UART (blocking, ~87 µs per byte) */
+  /* Send command over UART */
   if(HAL_UART_Transmit(&huart1, (uint8_t*) cmd, (uint16_t) cmd_len, 500U) != HAL_OK)
   {
     return ESP8266_ERROR;
@@ -213,7 +213,7 @@ ESP8266_Status_t ESP8266_ConnectWiFi(const char *ssid, const char *password, uin
     return ESP8266_ERROR;
   }
 
-  /* Join network — this can take several seconds */
+  /* Join network */
   int n = snprintf(cmd, sizeof(cmd), "AT+CWJAP=\"%s\",\"%s\"\r\n", ssid, password);
   if((n <= 0) || (n >= (int) sizeof(cmd)))
   {
@@ -223,7 +223,6 @@ ESP8266_Status_t ESP8266_ConnectWiFi(const char *ssid, const char *password, uin
   ESP8266_Status_t s = ESP8266_SendCommand(cmd, "WIFI GOT IP", timeout_ms);
   if(s != ESP8266_OK)
   {
-    /* Some firmware prints "WIFI CONNECTED" then "OK" without "WIFI GOT IP" */
     s = ESP8266_SendCommand("AT+CIFSR\r\n", "OK\r\n", 3000U);
   }
   return s;
@@ -252,7 +251,7 @@ ESP8266_Status_t ESP8266_GetIP(char *ip_buf, uint16_t buf_len)
       vTaskDelay(pdMS_TO_TICKS(500));
       continue;
     }
-    p += 7; /* skip "STAIP,\"" */
+    p += 7;
 
     char *end = strchr(p, '"');
     if(end == NULL)
@@ -268,7 +267,7 @@ ESP8266_Status_t ESP8266_GetIP(char *ip_buf, uint16_t buf_len)
       continue;
     }
 
-    /* IP not ready yet — DHCP still finalizing */
+    /* IP not ready yet */
     if((len == 7U) && (strncmp(p, "0.0.0.0", 7) == 0))
     {
       vTaskDelay(pdMS_TO_TICKS(1000));
@@ -290,7 +289,7 @@ ESP8266_Status_t ESP8266_TCPConnect(const char *host, uint16_t port, uint32_t ti
     return ESP8266_ERROR;
   }
 
-  /* Close any previous connection first (ignore result — may be "no link") */
+  /* Close any previous connection first */
   (void) ESP8266_SendCommand("AT+CIPCLOSE\r\n", "OK\r\n", 2000U);
   esp8266_rx_flush();
 

@@ -30,7 +30,7 @@ void vDht11Task(void *pv)
 
         if (read_status == DHT11_OK)
         {
-            /* Publish to shared snapshot — silent on success */
+            /* Publish to shared snapshot */
             xSemaphoreTake(g_sensor_mtx, portMAX_DELAY);
             g_sensor.temp_c    = sensor_reading.temp_c;
             g_sensor.hum_pct   = sensor_reading.hum_pct;

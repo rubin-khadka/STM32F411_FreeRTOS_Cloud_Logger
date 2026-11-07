@@ -60,7 +60,7 @@ static char* put_scaled(char *p, int32_t scaled, uint8_t decimals)
     uint32_t int_part  = (uint32_t)scaled / div;
     uint32_t frac_part = (uint32_t)scaled % div;
 
-    /* Integer part — variable width, no leading zeros */
+    /* Integer part */
     if (int_part == 0U) {
         *p++ = '0';
     } else {
@@ -75,7 +75,7 @@ static char* put_scaled(char *p, int32_t scaled, uint8_t decimals)
         }
     }
 
-    /* Fractional part (with '.' separator) */
+    /* Fractional part */
     if (decimals > 0U) {
         *p++ = '.';
         div /= 10U;
@@ -115,7 +115,7 @@ static void render_temp_hum(const SensorData_t *s, char *l1, char *l2)
 static void render_accel(const SensorData_t *s, char *l1, char *l2)
 {
     if (s->imu_valid) {
-        /* 2 decimals, clamp ±9.99 g → max 5 chars per value */
+        /* 2 decimals */
         int32_t ax = clamp_i32(round_scaled(s->ax_g, 100.0f), -999, 999);
         int32_t ay = clamp_i32(round_scaled(s->ay_g, 100.0f), -999, 999);
         int32_t az = clamp_i32(round_scaled(s->az_g, 100.0f), -999, 999);
@@ -141,7 +141,7 @@ static void render_accel(const SensorData_t *s, char *l1, char *l2)
 static void render_gyro(const SensorData_t *s, char *l1, char *l2)
 {
     if (s->imu_valid) {
-        /* 0 decimals, clamp ±999 dps → max 4 chars per value, fits 16 cols */
+        /* 0 decimals */
         int32_t gx = clamp_i32((int32_t)s->gx_dps, -999, 999);
         int32_t gy = clamp_i32((int32_t)s->gy_dps, -999, 999);
         int32_t gz = clamp_i32((int32_t)s->gz_dps, -999, 999);
