@@ -16,18 +16,18 @@
 #include <string.h>
 #include <stdbool.h>
 
-/* ---------- Config ---------- */
+#include "secrets.h"
 
-#define WIFI_SSID           "FASTWEB-FBD93D"
-#define WIFI_PASS           "CF6N68GNN8"
+/* --- Secrets (from secrets.h, gitignored) --- */
+#define WIFI_SSID           SECRET_WIFI_SSID
+#define WIFI_PASS           SECRET_WIFI_PASS
+#define MQTT_CLIENT_ID      SECRET_MQTT_CLIENT_ID
+#define MQTT_USERNAME       SECRET_MQTT_USERNAME
+#define MQTT_PASSWORD       SECRET_MQTT_PASSWORD
 
 #define MQTT_BROKER         "mqtt3.thingspeak.com"
 #define MQTT_PORT           1883U
 #define MQTT_KEEPALIVE_S    60U
-
-#define MQTT_CLIENT_ID      "ECAhHTURJSgoKDQnHjo1MzA"
-#define MQTT_USERNAME       "ECAhHTURJSgoKDQnHjo1MzA"
-#define MQTT_PASSWORD       "oKgVqEyQ/qCwSusrR5keDa5G"
 
 #define TOPIC_DHT           "channels/3569863/publish"
 #define TOPIC_IMU           "channels/3569865/publish"
@@ -132,26 +132,21 @@ static void build_imu_payload(const SensorData_t *s, char *buf)
   *p = '\0';
 }
 
-/* ---------- Connect with full trace ---------- */
+/* ---------- Connect — silent on success, prints only on failure ---------- */
 
 static bool cloud_connect(void)
 {
-  (void) USART2_Printf("CLOUD: [1/4] WiFi connecting to \"%s\"...\r\n", WIFI_SSID);
   if(ESP8266_ConnectWiFi(WIFI_SSID, WIFI_PASS, 20000U) != ESP8266_OK)
   {
-    (void) USART2_Printf("CLOUD: WiFi FAILED (check SSID/password/2.4GHz)\r\n");
+    (void) USART2_Printf("CLOUD: WiFi FAILED\r\n");
     return false;
   }
-  (void) USART2_Printf("CLOUD: WiFi OK\r\n");
 
-  (void) USART2_Printf("CLOUD: [2/4] TCP to %s:%u...\r\n",
-  MQTT_BROKER, (unsigned) MQTT_PORT);
   if(ESP8266_TCPConnect(MQTT_BROKER, MQTT_PORT, 8000U) != ESP8266_OK)
   {
-    (void) USART2_Printf("CLOUD: TCP FAILED (DNS or internet)\r\n");
+    (void) USART2_Printf("CLOUD: TCP FAILED\r\n");
     return false;
   }
-  (void) USART2_Printf("CLOUD: TCP OK\r\n");
 
   uint8_t pkt[160];
   uint16_t len = MQTT_BuildConnect(pkt, sizeof(pkt),
@@ -159,11 +154,10 @@ static bool cloud_connect(void)
   MQTT_PASSWORD, MQTT_KEEPALIVE_S);
   if(len == 0U)
   {
-    (void) USART2_Printf("CLOUD: MQTT build FAILED (buffer too small)\r\n");
+    (void) USART2_Printf("CLOUD: MQTT build FAILED\r\n");
     return false;
   }
 
-  (void) USART2_Printf("CLOUD: [3/4] MQTT CONNECT (%u bytes)...\r\n", (unsigned) len);
   char cmd[32];
   (void) snprintf(cmd, sizeof(cmd), "AT+CIPSEND=%u\r\n", (unsigned) len);
   if(ESP8266_SendCommand(cmd, ">", 2000U) != ESP8266_OK)
@@ -172,13 +166,11 @@ static bool cloud_connect(void)
     return false;
   }
 
-  (void) USART2_Printf("CLOUD: [4/4] waiting CONNACK...\r\n");
   if(ESP8266_SendBinary(pkt, len, "\x20\x02", 10000U) != ESP8266_OK)
   {
-    (void) USART2_Printf("CLOUD: CONNACK FAILED (bad MQTT credentials?)\r\n");
+    (void) USART2_Printf("CLOUD: CONNACK FAILED\r\n");
     return false;
   }
-  (void) USART2_Printf("CLOUD: MQTT CONNECTED\r\n");
 
   return true;
 }
@@ -200,11 +192,11 @@ static bool cloud_publish(const char *topic, const char *payload)
   {
     return false;
   }
-
   if(ESP8266_SendBinary(pkt, len, "SEND OK", 5000U) != ESP8266_OK)
   {
     return false;
   }
+
   return true;
 }
 
@@ -214,11 +206,8 @@ void vCloudTask(void *pv)
 {
   (void) pv;
 
-  (void) USART2_Printf("CLOUD: task started\r\n");
   vTaskDelay(pdMS_TO_TICKS(2000));
-
   ESP8266_Init();
-  (void) USART2_Printf("CLOUD: ESP driver initialized\r\n");
 
   if(!cloud_connect())
   {
@@ -239,30 +228,20 @@ void vCloudTask(void *pv)
     SensorData_GetSnapshot(&snap);
     bool any_fail = false;
 
-    /* --- DHT channel --- */
     if(snap.dht_valid)
     {
       build_dht_payload(&snap, payload);
-      if(cloud_publish(TOPIC_DHT, payload))
-      {
-        (void) USART2_Printf("CLOUD: [%lu] DHT ok  %s\r\n", (unsigned long) n, payload);
-      }
-      else
+      if(!cloud_publish(TOPIC_DHT, payload))
       {
         (void) USART2_Printf("CLOUD: [%lu] DHT FAILED\r\n", (unsigned long) n);
         any_fail = true;
       }
     }
 
-    /* --- IMU channel --- */
     if(snap.imu_valid)
     {
       build_imu_payload(&snap, payload);
-      if(cloud_publish(TOPIC_IMU, payload))
-      {
-        (void) USART2_Printf("CLOUD: [%lu] IMU ok  %s\r\n", (unsigned long) n, payload);
-      }
-      else
+      if(!cloud_publish(TOPIC_IMU, payload))
       {
         (void) USART2_Printf("CLOUD: [%lu] IMU FAILED\r\n", (unsigned long) n);
         any_fail = true;
@@ -286,3 +265,4 @@ void vCloudTask(void *pv)
     vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(CLOUD_CYCLE_MS));
   }
 }
+
