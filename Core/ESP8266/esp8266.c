@@ -87,6 +87,8 @@ ESP8266_Status_t ESP8266_SendCommand(const char *cmd, const char *ack, uint32_t 
     return ESP8266_NOT_INITIALIZED;
   }
 
+  esp8266_rx_flush();
+
   size_t cmd_len = strlen(cmd);
 
   /* Send command over UART (blocking, ~87 µs per byte) */
@@ -136,6 +138,8 @@ ESP8266_Status_t ESP8266_SendBinary(const uint8_t *data, uint16_t len, const cha
   {
     return ESP8266_NOT_INITIALIZED;
   }
+
+  esp8266_rx_flush();
 
   if(HAL_UART_Transmit(&huart1, (uint8_t*) data, len, 1000U) != HAL_OK)
   {
@@ -232,36 +236,51 @@ ESP8266_Status_t ESP8266_GetIP(char *ip_buf, uint16_t buf_len)
     return ESP8266_ERROR;
   }
 
-  esp8266_rx_flush();
-
-  if(ESP8266_SendCommand("AT+CIFSR\r\n", "OK\r\n", 3000U) != ESP8266_OK)
+  for(uint8_t attempt = 1U; attempt <= 3U; attempt++)
   {
-    return ESP8266_ERROR;
+    esp8266_rx_flush();
+
+    if(ESP8266_SendCommand("AT+CIFSR\r\n", "OK\r\n", 5000U) != ESP8266_OK)
+    {
+      vTaskDelay(pdMS_TO_TICKS(500));
+      continue;
+    }
+
+    char *p = strstr(s_resp_buf, "STAIP,\"");
+    if(p == NULL)
+    {
+      vTaskDelay(pdMS_TO_TICKS(500));
+      continue;
+    }
+    p += 7; /* skip "STAIP,\"" */
+
+    char *end = strchr(p, '"');
+    if(end == NULL)
+    {
+      vTaskDelay(pdMS_TO_TICKS(500));
+      continue;
+    }
+
+    size_t len = (size_t) (end - p);
+    if((len == 0U) || (len >= (size_t) buf_len))
+    {
+      vTaskDelay(pdMS_TO_TICKS(500));
+      continue;
+    }
+
+    /* IP not ready yet — DHCP still finalizing */
+    if((len == 7U) && (strncmp(p, "0.0.0.0", 7) == 0))
+    {
+      vTaskDelay(pdMS_TO_TICKS(1000));
+      continue;
+    }
+
+    (void) memcpy(ip_buf, p, len);
+    ip_buf[len] = '\0';
+    return ESP8266_OK;
   }
 
-  /* Look for STAIP,"x.x.x.x" in the response buffer */
-  const char *marker = "STAIP,\"";
-  char *p = strstr(s_resp_buf, marker);
-  if(p == NULL)
-  {
-    return ESP8266_ERROR;
-  }
-  p += strlen(marker);
-
-  char *end = strchr(p, '"');
-  if(end == NULL)
-  {
-    return ESP8266_ERROR;
-  }
-  size_t len = (size_t) (end - p);
-  if((len >= (size_t) buf_len) || (len == 0U))
-  {
-    return ESP8266_ERROR;
-  }
-
-  (void) memcpy(ip_buf, p, len);
-  ip_buf[len] = '\0';
-  return ESP8266_OK;
+  return ESP8266_ERROR;
 }
 
 ESP8266_Status_t ESP8266_TCPConnect(const char *host, uint16_t port, uint32_t timeout_ms)
