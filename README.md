@@ -108,10 +108,10 @@ Sensor data is published to two ThingSpeak channels over MQTT 3.1.1, sent throug
 
 | Channel | ID | Fields | Update Rate |
 | :--- | :-: | :--- | :-: |
-| DHT11 | 3569863 | field1 = temperature (°C), field2 = humidity (%) | 30 s |
-| IMU | 3569865 | field1-3 = accel (g), field4-6 = gyro (°/s) | 30 s |
+| DHT11 | 3569863 | field1 = temperature (°C), field2 = humidity (%) | 15 s |
+| IMU | 3569865 | field1-3 = accel (g), field4-6 = gyro (°/s) | 15 s |
 
-The two channels alternate on a 15 second cycle, so each one receives a new data point every 30 seconds. This keeps the total publish rate around 5,760 messages per day, within ThingSpeak's free-tier limit.
+Both channels publish in the same 15 second cycle, so their timestamps stay aligned. This results in about 11,520 messages per day.
 
 The MQTT protocol is implemented from scratch in `mqtt.c`, with no external library. CONNECT and PUBLISH packets are constructed manually with the correct fixed header, variable-length remaining-length encoding, and payload structure.
 
@@ -124,9 +124,9 @@ A W5500 Ethernet controller on SPI2 serves a live web dashboard at `http://192.1
 | `GET /` | HTML dashboard (dark theme, live sensor cards) |
 | `GET /api/data` | JSON: temperature, humidity, accel x/y/z, gyro x/y/z, RTC date/time |
 
-The HTTP server runs in `vNetTask` on socket 0, port 80. It uses polling rather than interrupts — socket status is checked every 10 ms, which is invisible at browser request rates. A binary semaphore serializes `USART2_Printf` calls across tasks; there are no bus mutexes.
+The HTTP server runs in `vNetTask` on socket 0, port 80. It uses polling rather than interrupts: socket status is checked every 10 ms, which is invisible at browser request rates. A binary semaphore serializes `USART2_Printf` calls across tasks; there are no bus mutexes.
 
-Unlike the ThingSpeak cloud path, this works entirely without internet — just a direct Ethernet cable to a PC set to `192.168.2.100/24`.
+Unlike the ThingSpeak cloud path, this works entirely without internet. Just a direct Ethernet cable to a PC set to `192.168.2.100/24`.
 
 ## Data Output
 
