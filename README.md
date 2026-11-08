@@ -14,25 +14,22 @@ A complete embedded data-logging system built around the **STM32F411CE** Cortex-
 
 The system reads three sensors:
 
-- **DHT11** — temperature and humidity
-- **MPU6050** — 3-axis accelerometer and gyroscope
-- **DS3231** — real-time clock with battery backup
+- **DHT11**: temperature and humidity
+- **MPU6050**: 3-axis accelerometer and gyroscope
+- **DS3231**: real-time clock with battery backup
 
 and routes their data to four independent outputs:
 
-- **LCD 16×2** — live values in four switchable display modes
-- **MicroSD card** — CSV log appended every 10 seconds via FatFS
-- **ThingSpeak cloud** — MQTT publish over WiFi through an ESP8266
-- **Local HTTP dashboard** — live web page at `http://192.168.2.10` served by a W5500 Ethernet controller
+- **LCD 16×2**: live values in four switchable display modes
+- **MicroSD card**: CSV log appended every 10 seconds via FatFS
+- **ThingSpeak cloud**: MQTT publish over WiFi through an ESP8266
+- **Local HTTP dashboard**: live web page at `http://192.168.2.10` served by a W5500 Ethernet controller
 
 Two push buttons handle mode switching and on-demand snapshot printing. All sensor data flows through a single shared `SensorData_t` struct protected by one mutex.
 
-This is a FreeRTOS + HAL rewrite of my earlier [STM32_MicroSD_Cloud_Logger](https://github.com/rubin-khadka/STM32_MicroSD_Cloud_Logger) (STM32F103, bare-metal, 72 MHz) project. The port to FreeRTOS was necessary because WiFi connection and MQTT publish took 5–20 seconds on the F103 and blocked the entire CPU, freezing the LCD and stopping all sensor reads. On FreeRTOS, those slow operations run in a low-priority task while everything else keeps running normally.
+This is a FreeRTOS + HAL rewrite of my earlier [STM32_MicroSD_Cloud_Logger](https://github.com/rubin-khadka/STM32_MicroSD_Cloud_Logger) (STM32F103, bare-metal, 72 MHz) project. The port to FreeRTOS was necessary because WiFi connection and MQTT publish took 5 to 20 seconds on the F103 and blocked the entire CPU, freezing the LCD and stopping all sensor reads. On FreeRTOS, those slow operations run in a low-priority task while everything else keeps running normally.
 
 ![System architecture diagram](./Assets/System_diagram.png)
-
-<!-- <img width="1000" height="600" alt="System Architecture Diagram"
-     src="https://raw.githubusercontent.com/rubin-khadka/STM32F411_FreeRTOS_Cloud_Logger/main/Assets/System_diagram.png" /> -->
 
 ## Video Demonstration
 *Todo*
@@ -60,26 +57,23 @@ This is a FreeRTOS + HAL rewrite of my earlier [STM32_MicroSD_Cloud_Logger](http
 
 *Full wiring diagram.*
 
-
-## Free RTOS
-
 ## FreeRTOS Task Design
 
 ```mermaid
 flowchart TB
-    subgraph PROD["Producers · write via mutex"]
-        T1["vDht11Task<br/>Priority 5 · 1 Hz<br/>4.5 ms critical section"]
-        T2["vImuRtcTask<br/>Priority 4 · 20 Hz IMU · 1 Hz RTC"]
+    subgraph PROD["Producers (Write via mutex)"]
+        T1["DHT11 Task<br/>Priority 5<br/>1 Hz<br/>4.5 ms critical section"]
+        T2["IMU and RTC Task<br/>Priority 4 <br/>20 Hz IMU <br/>1 Hz RTC"]
     end
 
-    GS[("g_sensor<br/>SensorData_t · 64 bytes<br/>g_sensor_mtx")]
+    GS[("g_sensor<br/>SensorData_t <br/>64 bytes<br/>g_sensor_mtx")]
 
-    subgraph CONS["Consumers · read via GetSnapshot"]
-        T3["vButtonTask<br/>Priority 3 · event-driven"]
-        T4["vSdTask<br/>Priority 3 · 10 s CSV"]
-        T5["vLcdTask<br/>Priority 2 · 10 Hz"]
-        T6["vNetTask<br/>Priority 2 · HTTP poll"]
-        T7["vCloudTask<br/>Priority 1 · 15 s MQTT"]
+    subgraph CONS["Consumers (Read via GetSnapshot)"]
+        T3["Button Task<br/>Priority 3 <br/>Event-driven"]
+        T4["SD Card Task<br/>Priority 3 <br/>10 s CSV"]
+        T5["LCD Task<br/>Priority 2 <br/>10 Hz"]
+        T6["HTTP Net Task<br/>Priority 2 <br/>HTTP poll"]
+        T7["MQTT Cloud Task<br/>Priority 1 <br/>15 s MQTT"]
     end
 
     T1 -->|"take · write · give"| GS
@@ -96,8 +90,74 @@ flowchart TB
     style CONS fill:#e6f7ff
 ```
 
-<img width="1000" height="800" alt="flow chart"
-     src="https://raw.githubusercontent.com/rubin-khadka/STM32F411_FreeRTOS_Cloud_Logger/main/Assets/freertos_architecture.png" />
+| Task | Priority | Period | Role |
+| :--- | :-: | :--- | :--- |
+| DHT11 Task | 5 | 1 s | DHT11 sensor read |
+| IMU and RTC Task | 4 | 50 ms / 1 s | MPU6050 at 20 Hz, DS3231 at 1 Hz |
+| Button Task | 3 | event | EXTI-driven, debounce + cooldown |
+| SD Card Task | 3 | 10 s | CSV row append via FatFS |
+| LCD Task | 2 | 100 ms | Four display modes |
+| HTTP Net Task | 2 | 10 ms | W5500 HTTP server poll |
+| MQTT Cloud Task | 1 | 15 s | ESP8266 + ThingSpeak MQTT |
+
+All sensor data flows through one shared `SensorData_t` struct protected by `g_sensor_mtx`. Producers take the mutex briefly to write their fields; consumers copy the struct under lock then use their private copy. No bus mutexes are needed because every I2C, SPI, and UART bus has exactly one owner task.
+
+## Cloud Connectivity (ThingSpeak)
+
+Sensor data is published to two ThingSpeak channels over MQTT 3.1.1, sent through an ESP8266 module connected to USART1.
+
+| Channel | ID | Fields | Update Rate |
+| :--- | :-: | :--- | :-: |
+| DHT11 | 3569863 | field1 = temperature (°C), field2 = humidity (%) | 30 s |
+| IMU | 3569865 | field1-3 = accel (g), field4-6 = gyro (°/s) | 30 s |
+
+The two channels alternate on a 15 second cycle, so each one receives a new data point every 30 seconds. This keeps the total publish rate around 5,760 messages per day, within ThingSpeak's free-tier limit.
+
+The MQTT protocol is implemented from scratch in `mqtt.c`, with no external library. CONNECT and PUBLISH packets are constructed manually with the correct fixed header, variable-length remaining-length encoding, and payload structure.
+
+## Local HTTP Dashboard (W5500)
+
+A W5500 Ethernet controller on SPI2 serves a live web dashboard at `http://192.168.2.10`. The page loads once (~2.4 KB) and updates sensor values every second via AJAX (`fetch('/api/data')` returns ~200 bytes of JSON per request), so the browser never does a full reload.
+
+| Endpoint | Response |
+| :--- | :--- |
+| `GET /` | HTML dashboard (dark theme, live sensor cards) |
+| `GET /api/data` | JSON: temperature, humidity, accel x/y/z, gyro x/y/z, RTC date/time |
+
+The HTTP server runs in `vNetTask` on socket 0, port 80. It uses polling rather than interrupts — socket status is checked every 10 ms, which is invisible at browser request rates. A binary semaphore serializes `USART2_Printf` calls across tasks; there are no bus mutexes.
+
+Unlike the ThingSpeak cloud path, this works entirely without internet — just a direct Ethernet cable to a PC set to `192.168.2.100/24`.
+
+## Data Output
+
+### CSV (MicroSD card)
+
+File: `sensdata.csv`, updated every 10 seconds.
+
+```csv
+DateTime,DHT11_C,DHT11_%,AX_g,AY_g,AZ_g,GX_dps,GY_dps,GZ_dps
+2026-11-08 14:30:05,24.5,54.0,-0.030,0.020,0.960,0.00,0.00,2.00
+2026-11-08 14:30:15,24.5,54.0,-0.031,0.019,0.961,0.00,0.00,1.99
+```
+
+## Related Projects
+
+- [STM32_MicroSD_Cloud_Logger](https://github.com/rubin-khadka/STM32_MicroSD_Cloud_Logger) — original F103 bare-metal version of this project
+- [STM32_OTA_Bootloader_W5500](https://github.com/rubin-khadka/STM32_OTA_Bootloader_W5500) — Ethernet OTA firmware update system
+- [STM32_OTA_Bootloader_ESP8266](https://github.com/rubin-khadka/STM32_OTA_Bootloader_ESP8266) — WiFi OTA variant
+
+## Resources
+
+- [STM32F411 Datasheet](https://www.st.com/resource/en/datasheet/stm32f411ce.pdf)
+- [STM32F411 Reference Manual (RM0383)](https://www.st.com/resource/en/reference_manual/rm0383-stm32f411xce-advanced-armbased-32bit-mcus-stmicroelectronics.pdf)
+- [FreeRTOS Kernel Documentation](https://www.freertos.org/Documentation/RTOS_book.html)
+- [DHT11 Datasheet](https://www.mouser.com/datasheet/2/758/DHT11-Technical-Data-Sheet-Translated-Version-1143054.pdf)
+- [MPU6050 Datasheet](https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Datasheet1.pdf)
+- [DS3231 Datasheet](https://www.analog.com/media/en/technical-documentation/data-sheets/ds3231.pdf)
+- [WIZnet W5500 Datasheet](https://cdn.sparkfun.com/datasheets/Dev/Arduino/Shields/W5500_datasheet_v1.0.2_1.pdf)
+- [ESP8266 AT Command Set](https://www.espressif.com/sites/default/files/documentation/4a-esp8266_at_instruction_set_en.pdf)
+- [MQTT 3.1.1 Specification](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html)
+- [FatFs Documentation](http://elm-chan.org/fsw/ff/00index_e.html)
 
 ## Project Status
 - **Status**: Complete
