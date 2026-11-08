@@ -7,4 +7,7 @@
 [![MQTT](https://img.shields.io/badge/MQTT-3.1.1-green)](https://mqtt.org/)
 
 <img width="1000" height="600" alt="flow chart"
-     src="https://raw.githubusercontent.com/rubin-khadka/STM32F411_FreeRTOS_Cloud_Logger/main/Assets/Sysyem_diagram.png" />
+     src="https://raw.githubusercontent.com/rubin-khadka/STM32F411_FreeRTOS_Cloud_Logger/main/Assets/System_diagram.png" />
+
+<img width="1000" height="600" alt="flow chart"
+     src="https://raw.githubusercontent.com/rubin-khadka/STM32F411_FreeRTOS_Cloud_Logger/main/Assets/freertos_architecture.png" />
