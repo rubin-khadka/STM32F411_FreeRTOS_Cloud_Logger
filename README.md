@@ -17,7 +17,7 @@
 
 ## Project Schematic
 
-<img width="1512" height="600" alt="flow chart"
+<img width="1512" height="800" alt="flow chart"
      src="https://raw.githubusercontent.com/rubin-khadka/STM32F411_FreeRTOS_Cloud_Logger/main/Assets/Schematic_Diagram.png" />
 
 ## Free RTOS
