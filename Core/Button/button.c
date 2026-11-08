@@ -28,7 +28,8 @@ DisplayMode_t Button_GetMode(void)
 void Button_NextMode(void)
 {
     uint8_t next = (uint8_t)current_mode + 1U;
-    if (next >= (uint8_t)DISPLAY_MODE_COUNT) {
+    if (next >= (uint8_t)DISPLAY_MODE_COUNT)
+    {
         next = (uint8_t)DISPLAY_MODE_TEMP_HUM;
     }
     current_mode = (DisplayMode_t)next;
@@ -37,14 +38,16 @@ void Button_NextMode(void)
 /* HAL EXTI callback */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    if (g_button_q == NULL) {
+    if (g_button_q == NULL)
+    {
         return;   /* not yet initialized */
     }
 
     uint8_t btn = 0U;
-    if (GPIO_Pin == BTN1_Pin) {
+    if (GPIO_Pin == BTN1_Pin)
+    {
         btn = 1U;
-    } else if (GPIO_Pin == BTN2_Pin) {
+    } else if (GPIO_Pin == BTN2_Pin){
         btn = 2U;
     } else {
         return;

@@ -21,7 +21,8 @@
 
 static bool button_is_pressed(uint8_t btn)
 {
-    switch (btn) {
+    switch (btn)
+    {
         case 1U: return HAL_GPIO_ReadPin(BTN1_GPIO_Port, BTN1_Pin) == GPIO_PIN_RESET;
         case 2U: return HAL_GPIO_ReadPin(BTN2_GPIO_Port, BTN2_Pin) == GPIO_PIN_RESET;
         default: return false;
@@ -34,7 +35,8 @@ static void print_snapshot(void)
     SensorData_t snap;
     SensorData_GetSnapshot(&snap);
 
-    if (!snap.dht_valid || !snap.imu_valid || !snap.rtc_valid) {
+    if (!snap.dht_valid || !snap.imu_valid || !snap.rtc_valid)
+    {
         (void) USART2_Printf("[BTN2] data incomplete\r\n");
         return;
     }
@@ -58,7 +60,8 @@ static void print_snapshot(void)
 static void drain_bounce_events(uint8_t btn)
 {
     uint8_t d;
-    while ((xQueuePeek(g_button_q, &d, 0U) == pdTRUE) && (d == btn)) {
+    while ((xQueuePeek(g_button_q, &d, 0U) == pdTRUE) && (d == btn))
+    {
         (void) xQueueReceive(g_button_q, &d, 0U);
     }
 }
@@ -72,16 +75,19 @@ void vButtonTask(void *pv)
 
     for (;;)
     {
-        if (xQueueReceive(g_button_q, &btn, portMAX_DELAY) != pdTRUE) {
+        if (xQueueReceive(g_button_q, &btn, portMAX_DELAY) != pdTRUE)
+        {
             continue;
         }
-        if ((btn < 1U) || (btn > 2U)) {
+        if ((btn < 1U) || (btn > 2U))
+        {
             continue;
         }
 
         /* --- Debounce: wait 20 ms, re-read pin --- */
         vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_MS));
-        if (!button_is_pressed(btn)) {
+        if (!button_is_pressed(btn))
+        {
             continue;   /* bounce or glitch */
         }
 
@@ -100,7 +106,8 @@ void vButtonTask(void *pv)
         last_press[btn - 1U] = now;
 
         /* --- Dispatch --- */
-        if (btn == 1U) {
+        if (btn == 1U)
+        {
             Button_NextMode();
         } else {
             print_snapshot();

@@ -15,11 +15,11 @@
 /* Display mode */
 typedef enum
 {
-  DISPLAY_MODE_TEMP_HUM = 0,
-  DISPLAY_MODE_ACCEL = 1,
-  DISPLAY_MODE_GYRO = 2,
-  DISPLAY_MODE_DATETIME = 3,
-  DISPLAY_MODE_COUNT = 4
+  DISPLAY_MODE_TEMP_HUM   = 0,
+  DISPLAY_MODE_ACCEL      = 1,
+  DISPLAY_MODE_GYRO       = 2,
+  DISPLAY_MODE_DATETIME   = 3,
+  DISPLAY_MODE_COUNT      = 4
 } DisplayMode_t;
 
 extern QueueHandle_t g_button_q;
