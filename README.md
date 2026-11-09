@@ -30,9 +30,16 @@ Two push buttons handle mode switching and on-demand snapshot printing. All sens
 This is a FreeRTOS + HAL rewrite of my earlier [STM32_MicroSD_Cloud_Logger](https://github.com/rubin-khadka/STM32_MicroSD_Cloud_Logger) (STM32F103, bare-metal, 72 MHz) project. The port to FreeRTOS was necessary because WiFi connection and MQTT publish took 5 to 20 seconds on the F103 and blocked the entire CPU, freezing the LCD and stopping all sensor reads. On FreeRTOS, those slow operations run in a low-priority task while everything else keeps running normally.
 
 ![System architecture diagram](./Assets/System_diagram.png)
+*System Architecture Diagram*
 
 ## Video Demonstration
 *Todo*
+
+## Project Schematic
+
+![Project schematic](./Assets/Schematic_Diagram.png)
+
+*Schematic Diagram*
 
 ## Pin Configuration
 
@@ -50,12 +57,6 @@ This is a FreeRTOS + HAL rewrite of my earlier [STM32_MicroSD_Cloud_Logger](http
 | Button 2 (Snapshot) | PA1 | EXTI1, falling edge, pull-up |
 
 > **Note:** MPU6050 and DS3231 share I2C2 at different addresses. The LCD is on its own I2C1 because the PCF8574 backpack is limited to 100 kHz.
-
-## Project Schematic
-
-![Project schematic](./Assets/Schematic_Diagram.png)
-
-*Full wiring diagram.*
 
 ## FreeRTOS Task Design
 

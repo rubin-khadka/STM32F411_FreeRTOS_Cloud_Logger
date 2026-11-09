@@ -16,34 +16,34 @@
 
 void vDht11Task(void *pv)
 {
-    (void) pv;
+  (void) pv;
 
-    DHT11_Init();
+  DHT11_Init();
 
-    TickType_t     last_wake = xTaskGetTickCount();
-    DHT11_Data_t   sensor_reading;
-    DHT11_Status_t read_status;
+  TickType_t last_wake = xTaskGetTickCount();
+  DHT11_Data_t sensor_reading;
+  DHT11_Status_t read_status;
 
-    for (;;)
+  for(;;)
+  {
+    read_status = DHT11_ReadFrame(&sensor_reading);
+
+    if(read_status == DHT11_OK)
     {
-        read_status = DHT11_ReadFrame(&sensor_reading);
-
-        if (read_status == DHT11_OK)
-        {
-            /* Publish to shared snapshot */
-            xSemaphoreTake(g_sensor_mtx, portMAX_DELAY);
-            g_sensor.temp_c    = sensor_reading.temp_c;
-            g_sensor.hum_pct   = sensor_reading.hum_pct;
-            g_sensor.dht_tick  = xTaskGetTickCount();
-            g_sensor.dht_valid = 1U;
-            xSemaphoreGive(g_sensor_mtx);
-        }
-        else
-        {
-            /* Failure */
-            (void) USART2_Printf("DHT: read failed (status=%d)\r\n", (int) read_status);
-        }
-
-        vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(DHT_PERIOD_MS));
+      /* Publish to shared snapshot */
+      xSemaphoreTake(g_sensor_mtx, portMAX_DELAY);
+      g_sensor.temp_c = sensor_reading.temp_c;
+      g_sensor.hum_pct = sensor_reading.hum_pct;
+      g_sensor.dht_tick = xTaskGetTickCount();
+      g_sensor.dht_valid = 1U;
+      xSemaphoreGive(g_sensor_mtx);
     }
+    else
+    {
+      /* Failure */
+      (void) USART2_Printf("DHT: read failed (status=%d)\r\n", (int) read_status);
+    }
+
+    vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(DHT_PERIOD_MS));
+  }
 }

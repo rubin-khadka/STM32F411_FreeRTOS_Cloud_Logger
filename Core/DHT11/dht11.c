@@ -23,7 +23,7 @@
 
 void DHT11_Init(void)
 {
-  HAL_GPIO_WritePin(DHT_PORT, DHT_PIN, GPIO_PIN_SET);   /* idle HIGH via pull-up */
+  HAL_GPIO_WritePin(DHT_PORT, DHT_PIN, GPIO_PIN_SET); /* idle HIGH via pull-up */
 }
 
 static DHT11_Status_t dht_wait_level(GPIO_PinState level, uint32_t timeout_us)
