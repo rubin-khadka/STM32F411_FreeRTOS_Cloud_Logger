@@ -141,26 +141,26 @@ static void render_accel(const SensorData_t *s, char *l1, char *l2)
 static void render_gyro(const SensorData_t *s, char *l1, char *l2)
 {
     if (s->imu_valid) {
-        /* 0 decimals */
-        int32_t gx = clamp_i32((int32_t)s->gx_dps, -999, 999);
-        int32_t gy = clamp_i32((int32_t)s->gy_dps, -999, 999);
-        int32_t gz = clamp_i32((int32_t)s->gz_dps, -999, 999);
+        /* 1 decimal, clamp to ±99.9 dps to fit the line */
+        int32_t gx = clamp_i32(round_scaled(s->gx_dps, 10.0f), -999, 999);
+        int32_t gy = clamp_i32(round_scaled(s->gy_dps, 10.0f), -999, 999);
+        int32_t gz = clamp_i32(round_scaled(s->gz_dps, 10.0f), -999, 999);
 
         char *p = l1;
         p = put_str(p, "X:");
-        p = put_scaled(p, gx, 0U);
+        p = put_scaled(p, gx, 1U);
         p = put_str(p, " Y:");
-        p = put_scaled(p, gy, 0U);
+        p = put_scaled(p, gy, 1U);
         *p = '\0';
 
         p = l2;
         p = put_str(p, "Z:");
-        p = put_scaled(p, gz, 0U);
+        p = put_scaled(p, gz, 1U);
         p = put_str(p, " dps");
         *p = '\0';
     } else {
-        (void)strcpy(l1, "X: --- Y: ---");
-        (void)strcpy(l2, "Z: --- dps");
+        (void)strcpy(l1, "X: --.- Y: --.-");
+        (void)strcpy(l2, "Z: --.- dps");
     }
 }
 
