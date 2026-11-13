@@ -32,8 +32,15 @@ This is a FreeRTOS + HAL rewrite of my earlier [STM32_MicroSD_Cloud_Logger](http
 ![System architecture diagram](./Assets/System_diagram.png)
 *System Architecture Diagram*
 
-## Video Demonstration
-*Todo*
+## Demonstrations
+
+### Video Demo
+*To be added.*
+
+### Web Dashboard
+![Web Dashboard](./Assets/webserver_outlook.png)
+
+*Live dashboard at `http://192.168.2.10`.*
 
 ## Project Schematic
 
