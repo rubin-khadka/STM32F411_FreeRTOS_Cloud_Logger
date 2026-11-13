@@ -34,8 +34,9 @@ This is a FreeRTOS + HAL rewrite of my earlier [STM32_MicroSD_Cloud_Logger](http
 
 ## Demonstrations
 
-### Video Demo
-*To be added.*
+### System Overview
+
+*LCD cycling through four display modes via button press while the system logs to MicroSD and publishes to ThingSpeak.*
 
 ### Web Dashboard
 ![Web Dashboard](./Assets/webserver_outlook.png)
