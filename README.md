@@ -38,10 +38,10 @@ This is a FreeRTOS + HAL rewrite of my earlier [STM32_MicroSD_Cloud_Logger](http
 
 *LCD cycling through four display modes via button press while the system logs to MicroSD and publishes to ThingSpeak.*
 
-### Web Dashboard
-![Web Dashboard](./Assets/webserver_outlook.png)
+### Local HTTP Dashboard (W5500)
 
-*Live dashboard at `http://192.168.2.10`.*
+
+*Live values at `http://192.168.2.10` updating every second as the board is tilted , served over a direct Ethernet link with no router.*
 
 ## Project Schematic
 
