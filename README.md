@@ -42,6 +42,7 @@ https://github.com/user-attachments/assets/2bd0616f-c514-4877-bf63-92e6d34c87f9
 
 ### Local HTTP Dashboard (W5500)
 
+https://github.com/user-attachments/assets/bd251da6-e12e-43f2-9d44-98a6837efc76
 
 *Live values at `http://192.168.2.10` updating every second as the board is tilted , served over a direct Ethernet link with no router.*
 
