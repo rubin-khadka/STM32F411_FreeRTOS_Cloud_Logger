@@ -48,6 +48,7 @@ https://github.com/user-attachments/assets/bd251da6-e12e-43f2-9d44-98a6837efc76
 
 ### Cloud Dashboard (ThingSpeak)
 
+https://github.com/user-attachments/assets/ce27930b-be80-432d-b53d-0e36456c4ef7
 
 *Both ThingSpeak channels receiving data every 15 s over WiFi. Note the DHT11 channel chart growing in real time.*
 
